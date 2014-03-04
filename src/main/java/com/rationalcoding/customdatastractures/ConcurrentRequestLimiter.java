@@ -40,7 +40,7 @@ public class ConcurrentRequestLimiter {
 	private long acquireTimeOut = 2;
 	private TimeUnit acquireTimeOutTimeUnit = TimeUnit.SECONDS;
 
-	private int concurrentRequestLimit = 20;
+	private int concurrentRequestLimit ;
 
 	private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
 
@@ -83,7 +83,7 @@ public class ConcurrentRequestLimiter {
 			if (userSemaphore == null) {
 				requestSemaphore.putIfAbsent(userId, new Semaphore(concurrentRequestLimit));
 			}
-			Semaphore semaphore = requestSemaphore.get(userId);
+			userSemaphore = requestSemaphore.get(userId);
 			logger.info("Available permits "+semaphore.availablePermits());
 			if (!semaphore.tryAcquire(acquireTimeOut, acquireTimeOutTimeUnit)) {
 				throw new TooManyConcurrentRequestsException(
