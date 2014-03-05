@@ -19,22 +19,22 @@ import com.rationalcoding.services.MovieDataServicesImpl;
 @RequestMapping("getdata")
 public class GetMovieRatings {
 	private static final Logger logger = Logger.getLogger(GetMovieRatings.class);
-	
+
 	@Autowired
 	private MovieDataServicesImpl movieDataServices;
 
 	@RequestMapping(value = "/{movieName}", method = RequestMethod.GET)
 	@ResponseBody
 	public MovieInfoDTO getData(@PathVariable String movieName) {
-		logger.info("Request being processed for movie "+movieName);
+		logger.info("Request being processed for movie " + movieName);
 		MovieInfoDTO movieInfo = movieDataServices.getMovieRatings(movieName);
 		return movieInfo;
-	}	
-	
-	@ResponseStatus(value=HttpStatus.FORBIDDEN, reason="Too many requests")  
-  @ExceptionHandler(TooManyConcurrentRequestsException.class)
-  public void forbidden() {
-    // Nothing to do
-  }
+	}
+
+	@ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Too many requests")
+	@ExceptionHandler(TooManyConcurrentRequestsException.class)
+	public void forbidden() {
+		// Nothing to do
+	}
 
 }

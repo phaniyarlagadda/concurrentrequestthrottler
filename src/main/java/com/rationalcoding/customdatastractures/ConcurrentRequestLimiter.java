@@ -1,6 +1,7 @@
 package com.rationalcoding.customdatastractures;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -35,10 +36,10 @@ public class ConcurrentRequestLimiter {
 	private long evictionDelay;
 	private TimeUnit evictionDealyUnit;
 	private long initialDelay;
-	private long expiryTime = 30;
-	private TimeUnit expiryTimeUnit = TimeUnit.MINUTES;
-	private long acquireTimeOut = 2;
-	private TimeUnit acquireTimeOutTimeUnit = TimeUnit.SECONDS;
+	private long expiryTime ;
+	private TimeUnit expiryTimeUnit;
+	private long acquireTimeOut ;
+	private TimeUnit acquireTimeOutTimeUnit;
 
 	private int concurrentRequestLimit ;
 
@@ -83,13 +84,13 @@ public class ConcurrentRequestLimiter {
 			if (userSemaphore == null) {
 				requestSemaphore.putIfAbsent(userId, new Semaphore(concurrentRequestLimit));
 			}
-			userSemaphore = requestSemaphore.get(userId);
-			logger.info("Available permits "+semaphore.availablePermits());
+			Semaphore semaphore = requestSemaphore.get(userId);
+			logger.trace("Available permits for user "+userId+" is "+semaphore.availablePermits());
 			if (!semaphore.tryAcquire(acquireTimeOut, acquireTimeOutTimeUnit)) {
+				logger.error("Too many requests by user "+userId);
 				throw new TooManyConcurrentRequestsException(
 						"Too many concurrent requests. Wait for old requests to finish.");
 			}
-			logger.info("Available permits after acquire "+semaphore.availablePermits());
 		} catch (InterruptedException e) {
 			throw e;
 		} finally {
@@ -142,7 +143,7 @@ public class ConcurrentRequestLimiter {
 				return;
 			}
 
-			Set<String> markForRemoval = new HashSet<String>();
+			List<String> markForRemoval = new ArrayList<String>();
 			// acquire only read lock until we determine if cleanup is neccessary. 
 			accessLock.readLock().lock();
 			try {
@@ -150,9 +151,6 @@ public class ConcurrentRequestLimiter {
 
 				for (String user : userIds) {
 					long timeLastAccessed = timeMap.get(user);
-					if (timeLastAccessed == 0) {
-						continue;
-					}
 					long interval = System.currentTimeMillis() - timeLastAccessed;
 					long elapsedTime = TimeUnit.NANOSECONDS.convert(interval, expiryTimeUnit);
 					if (requestSemaphore.get(user).availablePermits() == concurrentRequestLimit
@@ -170,9 +168,6 @@ public class ConcurrentRequestLimiter {
 				try {
 					for (String user : markForRemoval) {
 						long timeLastAccessed = timeMap.get(user);
-						if (timeLastAccessed == 0) {
-							continue;
-						}
 						long interval = System.currentTimeMillis() - timeLastAccessed;
 						long elapsedTime = TimeUnit.NANOSECONDS.convert(interval, expiryTimeUnit);
 						if (requestSemaphore.get(user).availablePermits() == concurrentRequestLimit
